@@ -1,12 +1,19 @@
-import pickle
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
 
-# Load the trained model
-with open('model.pkl', 'rb') as file:
-    lr_sklearn = pickle.load(file)
+# Load the data
+path = "Data/tvmarketing.csv"
+adv = pd.read_csv(path)
 
-def predict(value):
-    """
-    Function to make predictions using the loaded model.
-    """
-    predicted_value = lr_sklearn.predict([[value]])
-    return predicted_value[0][0]
+# Extract features and target
+X = adv['TV'].values.reshape(-1, 1)
+Y = adv['Sales'].values
+
+# Train the linear regression model
+lr_model = LinearRegression()
+lr_model.fit(X, Y)
+
+# Save the trained model using joblib
+joblib.dump(lr_model, 'lr_model.joblib')

@@ -1,30 +1,31 @@
-from fastapi import FastAPI, status
-import nest_asyncio
-from pyngrok import ngrok
-import uvicorn
-from pydantic import BaseModel, Field
-from model import predict
+from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import List
+import numpy as np
+import joblib
 
 app = FastAPI()
 
-class RequestModel(BaseModel):
-    tv: float = Field(gt=0, lt=10000)
+# Load the trained linear regression model
+lr_model = joblib.load('lr_model.joblib')
 
-@app.get('/')
-async def home():
-    return "Hello World"
+class PredictionRequest(BaseModel):
+    X: List[float]
 
-@app.post('/predict', status_code=status.HTTP_200_OK)
-async def predict_fast_api(request: RequestModel):
-    value = request.tv
-    predicted_value = predict(value)
-    return f'Predicted Tv sales : {predicted_value}'
+@app.post("/predict")
+def predict_sales(request: PredictionRequest):
+    # Extract input data from request
+    X = request.X
 
-async def main():
-    config = uvicorn.Config(app)
-    server = uvicorn.Server(config)
-    await server.serve()
+    # Convert input data to numpy array and reshape it
+    X_array = np.array(X).reshape(-1, 1)
 
+    # Make predictions using the loaded model
+    Y_pred = lr_model.predict(X_array)
+
+    return {"predictions": Y_pred.tolist()}
+
+# Run the FastAPI application
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
